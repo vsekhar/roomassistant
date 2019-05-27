@@ -11,15 +11,3 @@ function getEvents(startDate, endDate) {
   });
   return events.items;
 }
-
-function listEvents() {
-  var events = getCachedEvents(2);
-  for (e in events) {
-    var event = events[e];
-    if (event.start.date) {
-      log('All day: ' + event.summary);
-    } else {
-      log('Regular: ' + event.summary);
-    }
-  }
-}
