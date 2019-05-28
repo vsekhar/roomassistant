@@ -3,11 +3,7 @@
 //    buildingsById['CA-WAT-BRT2'] == 'WAT-BRT2'
 var buildings = {};
 
-// rooms.
-//    roomsByBuildingId['CA-WAT-BRT2'] == [roomIds...]
-var rooms = {};
-
-function initResources() {
+function initBuildings() {
   const cacheName = 'buildingsMappings5';
   var cache = CacheService.getUserCache();
   var cachedBuildingsMappings = cache.get(cacheName);
@@ -26,6 +22,10 @@ function initResources() {
     buildings.buildingsById[building.buildingId] = building.buildingName;
   }
   cache.put(cacheName, JSON.stringify(buildings), 21600); // 6 hours
+}
+
+function initResources() {
+  initBuildings();
 }
 
 // Returns the building ID if nameOrId denotes a building name or ID, null otherwise.
@@ -106,4 +106,13 @@ function whereIsTheUserOrDie(date) {
     return building;
   }
   throw("Failed to determine building");
+}
+
+function roomsIn(buildingId) {
+  var rooms = AdminDirectory.Resources.Calendars.list('my_customer', {
+    'query': 'buildingId=' + buildingId,
+    'orderBy': 'floorName desc, capacity',
+    'maxResults': 500
+  })
+  return rooms.items;
 }
