@@ -83,8 +83,8 @@ function buildingFromEvents(events) {
   return null;
 }
 
-// Returns the building ID of the user's desk or default location (updated every 6 hours) or null.
-function buildingFromDirectory() {
+// Returns the building ID of the user's desk or default location (updated every 6 hours).
+function buildingFromDirectoryOrDie() {
   const cacheName = 'buildingFromDirectory-building';
   var cache = CacheService.getUserCache();
   var cachedBuildingId = cache.get(cacheName);
@@ -96,7 +96,8 @@ function buildingFromDirectory() {
       resourceNames: ['people/me'],
       personFields: ['metadata']
     });
-    var id = people.responses[0].person.metadata.sources[0].id;
+    var me = people.responses[0].person
+    var id = me.metadata.sources[0].id;
     var user = AdminDirectory.Users.get(id, {viewType: "domain_public"});
     
     var building;
@@ -108,21 +109,7 @@ function buildingFromDirectory() {
       }
     }
   }
-  return null;
-}
-
-// Returns the building ID where the user is likely to be, or "skip" if the user doesn't need rooms in buildings that day.
-function whereIsTheUserOrDie(date) {
-  var events = getEvents(startOfDate(today()), endOfDate(today()));
-  var building = buildingFromEvents(events);
-  if (building != null) {
-    return building;
-  }
-  building = buildingFromDirectory();
-  if (building != null) {
-    return building;
-  }
-  throw("Failed to determine building");
+  throw("Failed to determine user's building: ", me);
 }
 
 function roomsIn(buildingId) {
