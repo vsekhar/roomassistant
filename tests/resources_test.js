@@ -1,15 +1,15 @@
 function testBuildingId() {
     initResources();
     if (buildingId('abc123') != null) {
-      log("ERROR: Non-existant building found");
+      Logger.log("ERROR: Non-existant building found");
     }
     if (buildingId('CA-WAT-BRT2') != 'CA-WAT-BRT2') {
-      log("ERROR: CA-WAT-BRT2 not found");
+      Logger.log("ERROR: CA-WAT-BRT2 not found");
     }
     if (buildingId('WAT-BRT2') != 'CA-WAT-BRT2') {
-      log("ERROR: WAT-BRT2 not found (got: " + buildingId('WAT-BRT2') + ", want: " + 'CA-WAT-BRT2');
+      Logger.log("ERROR: WAT-BRT2 not found (got: " + buildingId('WAT-BRT2') + ", want: " + 'CA-WAT-BRT2');
     }
-    log("Done");
+    Logger.log("Done");
   }
   
   function testCalendarBuildingOverride() {
@@ -26,13 +26,13 @@ function testBuildingId() {
       var d = new Date(date);
       d.setDate(d.getDate() + i);
       var events = getEvents(startOfDate(d), endOfDate(d));
-      log('testCalendarBuildingOverride (' + (i+1) + '/3): ' + locationFromEvents(events));
+      Logger.log('testCalendarBuildingOverride (' + (i+1) + '/3): ' + locationFromEvents(events));
     }
   }
   
   function testWhereIsTheUserOrDie() {
     initResources();
     var building = whereIsTheUserOrDie(today());
-    log('Building: ' + building);
+    Logger.log('Building: ' + building);
   }
   

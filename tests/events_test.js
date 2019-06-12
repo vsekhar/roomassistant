@@ -3,9 +3,9 @@ function listEvents() {
     for (e in events) {
       var event = events[e];
       if (event.start.date) {
-        log('All day: ' + event.summary);
+        Logger.log('All day: ' + event.summary);
       } else {
-        log('Regular: ' + event.summary);
+        Logger.log('Regular: ' + event.summary);
       }
     }
   }

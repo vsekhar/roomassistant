@@ -5,7 +5,7 @@ function runNow() {
   var cal = CalendarApp.getDefaultCalendar();
   var date = new Date();
   roomifyDate(cal, date);
-  log('Room assistant running on \'' + cal.getName() + '\' for ' + date);
+  Logger.log('Room assistant running on \'' + cal.getName() + '\' for ' + date);
 }
 
 function ensureRoomsForDate(date, buildingId) {
@@ -37,16 +37,16 @@ function ensureRoomsInBuilding(event, buildingId) {
     // Is the attendee the user and have they not declined? Then assume going.
     if (attendee.email == email && attendee.responseStatus != 'declined') {
       going = true;
-      log("User going to: " + event.summary)
+      Logger.log("User going to: " + event.summary)
     }
 
     // Is the attendee a resource that has accepted?
     if (attendee.resource && attendee.responseStatus == 'accepted') {
-      log("Resource accepted: " + attendee.displayName + ", " + attendee.email)
+      Logger.log("Resource accepted: " + attendee.displayName + ", " + attendee.email)
       // in the right building?
       if (roomsByEmail.hasOwnProperty(attendee.email)) {
         roomInBuilding = true;
-        log("Room in user's building found")
+        Logger.log("Room in user's building found")
       }
     }
   }
@@ -70,12 +70,12 @@ function ensureRoomsInBuilding(event, buildingId) {
     for (fbr in resp.calendars) {
       var fbRoom = resp.calendars[fbr];
       if (fbRoom.errors && fbRoom.errors.length != 0) {
-        log("Errors with room (" + fbr + "): " + JSON.stringify(fbRoom.errors));
+        Logger.log("Errors with room (" + fbr + "): " + JSON.stringify(fbRoom.errors));
         // TODO: getting "too many calendars queried" errors, prioritize/paginate somehow.
       }
       if (fbRoom.busy.length == 0) {
         // no busy periods within query period, so it's free
-        log("Found: " + fbr);
+        Logger.log("Found: " + fbr);
       }
     }
   }
