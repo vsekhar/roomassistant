@@ -1,7 +1,7 @@
-function testEnsureRoomsInBuilding() {
+function testEnsureRoomsForDate() {
     initResources();
     // Which building?
     var buildingId = whereIsTheUserOrDie(today());
-    ensureRoomsInBuilding(today(), buildingId);
+    ensureRoomsForDate(today(), buildingId);
   }
   

@@ -1,3 +1,14 @@
+// Building aliases users can use to tag days in their calendar.
+// These are typically the largest/first/canonical buildings in their
+// respective cities. Add to this list as needed.
+var buildingAliases = {
+  "MTV": "US-MTV-900",
+  "NYC": "US-NYC-9TH",
+  "SFO": "US-SFO-SPE",
+  "TOR": "CA-TOR-111",
+  "WAT": "CA-WAT-BRT2"
+}
+
 // buildings.
 //    buildingsByName['WAT-BRT2'] == 'CA-WAT-BRT2'
 //    buildingsById['CA-WAT-BRT2'] == 'WAT-BRT2'
@@ -39,6 +50,12 @@ function buildingId(nameOrId) {
   if (buildings.buildingsByName.hasOwnProperty(nameOrId)) {
     return buildings.buildingsByName[nameOrId];
   }
+
+  // Alias?
+  if (buildingAliases.hasOwnProperty(nameOrId)) {
+    return buildingAliases[nameOrId];
+  }
+  
   return null;
 }
 
