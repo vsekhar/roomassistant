@@ -1,13 +1,14 @@
 // Building aliases users can use to tag days in their calendar.
 // These are typically the largest/first/canonical buildings in their
-// respective cities. Add to this list as needed.
+// respective cities. Add to this list as needed. Use lowercase for
+// aliases.
 var buildingAliases = {
-  "MTV": "US-MTV-900",
-  "NYC": "US-NYC-9TH",
-  "SFO": "US-SFO-SPE",
-  "TOR": "CA-TOR-111",
-  "WAT": "CA-WAT-BRT2"
-}
+  mtv: "US-MTV-900",
+  nyc: "US-NYC-9TH",
+  sfo: "US-SFO-SPE",
+  tor: "CA-TOR-111",
+  wat: "CA-WAT-BRT2"
+};
 
 // buildings.
 //    buildingsByName['WAT-BRT2'] == 'CA-WAT-BRT2'
@@ -52,8 +53,9 @@ function buildingId(nameOrId) {
   }
 
   // Alias?
-  if (buildingAliases.hasOwnProperty(nameOrId)) {
-    return buildingAliases[nameOrId];
+  var nameOrIdLowerCase = nameOrId.toLowerCase();
+  if (buildingAliases.hasOwnProperty(nameOrIdLowerCase)) {
+    return buildingAliases[nameOrIdLowerCase];
   }
   
   return null;
@@ -70,21 +72,43 @@ function buildingFromEvents(events) {
       // all day events only
       continue;
     }
+    Logger.log("Checking if building: ", event.summary);
     var bid = buildingId(event.summary);
     if (bid != null) {
       return bid;
     }
-    if (event.summary.startsWith("WFH") ||
-        event.summary.startsWith("OOO") ||
-        event.summary.startsWith("Out of office")) {
+    var eventSummaryLowerCase = event.summary.toLowerCase();
+    if (eventSummaryLowerCase.startsWith("wfh") ||
+        eventSummaryLowerCase.startsWith("ooo") ||
+        eventSummaryLowerCase.startsWith("out of office")) {
       return "skip";
     }
   }
+  Logger.log("Not building: ", event.summary);
   return null;
+}
+
+const userBuildingOverridePropertyName = 'roomassistantUserBuildingOverride'
+
+function setBuildingOverride(building) {
+  var properties = PropertiesService.getUserProperties();
+  properties.setProperty(userBuildingOverridePropertyName, building);
 }
 
 // Returns the building ID of the user's desk or default location (updated every 6 hours).
 function buildingFromDirectoryOrDie() {
+  // Check for override
+  var properties = PropertiesService.getUserProperties();
+  var buildingOverride = properties.getProperty(userBuildingOverridePropertyName);
+  if (buildingOverride != null) {
+    var id = buildingId(buildingOverride);
+    if (id == null) {
+      throw new Error("Bad building override: " + buildingOverride);
+    }
+    return id;
+  }
+
+  // Get from actual directory
   const cacheName = 'buildingFromDirectory-building';
   var cache = CacheService.getUserCache();
   var cachedBuildingId = cache.get(cacheName);
