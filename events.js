@@ -1,5 +1,6 @@
+const lookAheadDays = 14; // 0 means just today (for dev/test)
+
 const syncTokenName = 'roomassistantSyncToken';
-const lookAheadDays = 14;
 const maxResultsPerPage = 50; // max 2500
 const maxAttendees = 30; // otherwise skip event
 
