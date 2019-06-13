@@ -53,10 +53,17 @@ function doSync({fullSync = false} = {}) {
             var hasAttendees = event.attendees && event.attendees.length > 0;
             var numAttendees = hasAttendees ? event.attendees.length : 0;
 
-            // numAttendees == 0 is not a meeting
-            // numAttendees == 1 is a big meeting (e.g. all-hands)
-            //   - NB event.attendeesOmitted doesn't work for big meetings
-            if (!roomRequested && numAttendees < 2) continue;
+            // numAttendees == 
+            //   0: just the user (no guests, no rooms)
+            //   1: attendee list too large to display (e.g. all-hands)
+            //       - event.attendeesOmitted doesn't work to detect big meetings
+            //   2: event has one other guest or a room, plus the user
+            //       - Yes, adding *just* a room to an empty event bumps
+            //         numAttendees from 0 to 2...
+            if (!roomRequested) {
+                if (numAttendees == 0) continue; // skip non-meetings
+                if (numAttendees == 1) continue; // skip all-hands
+            }
 
             var humans = 0;
             var userDeclined = false;
@@ -69,7 +76,10 @@ function doSync({fullSync = false} = {}) {
             }
             if (hasRoom) continue;
             if (userDeclined) continue;
-            if (!roomRequested && humans < 2) continue; // not a meeting
+            if (!roomRequested) {
+                if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
+                if (humans == 1) continue; // skip non-meetings
+            }
 
             // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
@@ -78,7 +88,7 @@ function doSync({fullSync = false} = {}) {
             if (!newRoomEmail) throw new Error("no available room found");
             var newRoom = roomsByEmail[newRoomEmail];
 
-            // TODO: check to ensure chosen room isn't already on the eveent (and declined)
+            // TODO: check to ensure chosen room isn't already on the event (and declined)
             // TODO: add room to event
             Logger.log("ADD: " + newRoom.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
         }
