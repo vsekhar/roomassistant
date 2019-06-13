@@ -169,6 +169,8 @@ function rankedRoomsIn(buildingId) {
 // Returns the resourceEmail of the first room in rankedRooms that is free
 // between startTime and endTime. Returns null if none found.
 function findAvailable(rankedRooms, startTime, endTime) {
+  // TODO: Make this a generator
+
   // API max is 50
   // See: cs/calendar_rosy_max_freebusy_calendars_per_request
   const batchSize = 50;

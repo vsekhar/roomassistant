@@ -84,6 +84,7 @@ function doSync({fullSync = false} = {}) {
             // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
             var newRoomEmail = findAvailable(rooms, event.start.dateTime, event.end.dateTime);
+            // TODO: consume rooms via generator so that more than one can be checked
             // TODO: improve this with an email summary of failures
             if (!newRoomEmail) throw new Error("no available room found");
             var newRoom = roomsByEmail[newRoomEmail];
