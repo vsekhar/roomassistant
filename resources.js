@@ -72,7 +72,6 @@ function buildingFromEvents(events) {
       // all day events only
       continue;
     }
-    Logger.log("Checking if building: ", event.summary);
     var bid = buildingId(event.summary);
     if (bid != null) {
       return bid;
@@ -84,7 +83,6 @@ function buildingFromEvents(events) {
       return "skip";
     }
   }
-  Logger.log("Not building: ", event.summary);
   return null;
 }
 
@@ -137,10 +135,33 @@ function buildingFromDirectoryOrDie() {
 }
 
 function roomsIn(buildingId) {
-  var rooms = AdminDirectory.Resources.Calendars.list('my_customer', {
+  var rooms = [];
+  var pageToken;
+  var options = {
     'query': 'buildingId=' + buildingId,
-    'orderBy': 'floorName desc, capacity',
-    'maxResults': 500
-  })
-  return rooms.items;
+    'orderBy': 'capacity',
+    'maxResults': 500 // max 500
+  };
+
+  do {
+    options.pageToken = pageToken;
+    var response = AdminDirectory.Resources.Calendars.list('my_customer', options);
+
+    // filter out things that are not conference rooms; they tend not to have calendars.
+    response.items = response.items.filter(function(r) {
+      if (r.resourceCategory === 'OTHER') return false;
+      return true;
+    })
+
+    rooms = rooms.concat(response.items);
+    pageToken = response.nextPageToken;
+  } while (pageToken);
+
+  return rooms;
+}
+
+function rankedRoomsIn(buildingId) {
+  var rooms = roomsIn(buildingId);
+  // TODO: some magic ranking
+  return rooms;
 }

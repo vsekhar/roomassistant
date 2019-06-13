@@ -17,10 +17,12 @@ function createTriggers() {
 }
 
 function sync() {
+    Logger.log("running incremental sync");
     return doSync({fullSync: false});
 }
 
 function fullSync() {
+    Logger.log("running full sync");
     return doSync({fullSync: true});
 }
 

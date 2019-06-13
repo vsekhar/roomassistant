@@ -1,6 +1,7 @@
 const syncTokenName = 'roomassistantSyncToken';
 const lookAheadDays = 14;
 const maxResultsPerPage = 50; // max 2500
+const maxAttendees = 30; // otherwise skip event
 
 // Returns events for a calendar on a date.
 function getSyncEvents({fullSync = false} = {}) {
@@ -33,7 +34,6 @@ function getSyncEvents({fullSync = false} = {}) {
   do {
       try {
           options.pageToken = pageToken;
-          Logger.log("Request: " + JSON.stringify(options));
           response = Calendar.Events.list('primary', options);
       } catch (e) {
           // Check if server invalidated sync token
@@ -45,23 +45,12 @@ function getSyncEvents({fullSync = false} = {}) {
               throw new Error(e.message);
           }
       }
-
-      var responseForLog = Object.assign({}, response);
-      responseForLog.items = response.items.length;
-      Logger.log("Response: " + responseForLog);
-
-      for (e in response.items) {
-          var event = response.items[e];
-          Logger.log("Received event: " + event.summary);
-      }
       events = events.concat(response.items);
-
       pageToken = response.nextPageToken;
   } while (pageToken);
 
   if (!response.hasOwnProperty('nextSyncToken')) {
-      Logger.log("Error: No nextSyncToken")
-      return;
+      throw new Error("Error: No nextSyncToken")
   }
   properties.setProperty(syncTokenName, response.nextSyncToken);
   return events;

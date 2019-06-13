@@ -36,3 +36,21 @@ function testBuildingId() {
     Logger.log('Building: ' + building);
   }
   
+  function testRoomsIn() {
+    const building = 'US-NYC-9TH'
+    var rooms = roomsIn(building);
+    Logger.log('Rooms in ' + building + ': ' + rooms.length);
+  }
+
+  function testFindAvailable() {
+    var rooms = [
+      {
+        // US-NYC-9TH-10-B-Hal 9000
+        resourceEmail: 'google.com_726f6f6d5f75735f6e79635f3974685f31305f313062323038@resource.calendar.google.com'
+      }
+    ];
+    var startTime = '2019-06-12T01:00:00-05:00';
+    var endTime = '2019-06-12T02:00:00-05:00';
+    var avail = findAvailable(rooms, startTime, endTime);
+    Logger.log("Room available: " + avail);
+  }

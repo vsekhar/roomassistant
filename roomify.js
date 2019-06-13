@@ -1,6 +1,3 @@
-// Number of days to look ahead (1 = just today).
-const lookahead = 1;
-
 function runNow() {
   var cal = CalendarApp.getDefaultCalendar();
   var date = new Date();
@@ -8,75 +5,44 @@ function runNow() {
   Logger.log('Room assistant running on \'' + cal.getName() + '\' for ' + date);
 }
 
-function ensureRoomsForDate(date, buildingId) {
-  var email = Session.getActiveUser().getEmail();
+// Returns the resourceEmail of the first room in rankedRooms that is free
+// between startTime and endTime. Returns null if none found.
+function findAvailable(rankedRooms, startTime, endTime) {
+  // API max is 50
+  // See: cs/calendar_rosy_max_freebusy_calendars_per_request
+  const batchSize = 50;
 
-  var rooms = roomsIn(buildingId);
-  var roomsByEmail = {};
-  for (r in rooms) {
-    var room = rooms[r];
-    roomsByEmail[room.resourceEmail] = room;
-  }
-
-  var events = getEvents(startOfDate(date), endOfDate(date));
-  for (e in events) {
-    var event = events[e];
-    // skip all day events (ones with a .date instead of a .dateTime)
-    if (event.start.date) {
-      continue; 
-    }
-    ensureRoomInBuilding(event, buildingId);
-  }
-}
-
-function ensureRoomsInBuilding(event, buildingId) {
-  var going = false;
-  var roomInBuilding = false;
-  for (a in event.attendees) {
-    var attendee = event.attendees[a];
-    // Is the attendee the user and have they not declined? Then assume going.
-    if (attendee.email == email && attendee.responseStatus != 'declined') {
-      going = true;
-      Logger.log("User going to: " + event.summary)
-    }
-
-    // Is the attendee a resource that has accepted?
-    if (attendee.resource && attendee.responseStatus == 'accepted') {
-      Logger.log("Resource accepted: " + attendee.displayName + ", " + attendee.email)
-      // in the right building?
-      if (roomsByEmail.hasOwnProperty(attendee.email)) {
-        roomInBuilding = true;
-        Logger.log("Room in user's building found")
-      }
-    }
-  }
-
-  if (!going) {
-    return;
-  }
-
-  if (!roomInBuilding) {
-    var resourceEmails = [];
-    for (r in roomsByEmail) {
-      var room = roomsByEmail[r];
-      resourceEmails.push({'id': room.resourceEmail});
-    }
+  for (var batch = 0; batch*batchSize < rankedRooms.length; batch++) {
+    var rooms = rankedRooms.slice(batch*batchSize, ((batch+1)*batchSize));
     var query = {
-      items: resourceEmails,
-      timeMin: event.start.dateTime,
-      timeMax: event.end.dateTime
+      items: [],
+      timeMin: startTime,
+      timeMax: endTime,
+      calendarExpansionMax: batchSize // calendarExpansionMax defaults to 20 
+    };
+    for (r in rooms) {
+      query.items.push({'id': rooms[r].resourceEmail});
     }
-    var resp = Calendar.Freebusy.query(query);
-    for (fbr in resp.calendars) {
-      var fbRoom = resp.calendars[fbr];
-      if (fbRoom.errors && fbRoom.errors.length != 0) {
-        Logger.log("Errors with room (" + fbr + "): " + JSON.stringify(fbRoom.errors));
-        // TODO: getting "too many calendars queried" errors, prioritize/paginate somehow.
+    var response = Calendar.Freebusy.query(query);
+    for (r in rooms) {
+      var room = rooms[r];
+      if (!response.calendars.hasOwnProperty(room.resourceEmail)) {
+        throw new Error("Requested room not returned: " + room);
       }
-      if (fbRoom.busy.length == 0) {
-        // no busy periods within query period, so it's free
-        Logger.log("Found: " + fbr);
+      var cal = response.calendars[room.resourceEmail];
+      if (cal.errors) {
+        // some rooms don't have calendars...
+        if (cal.errors.length == 1 && cal.errors[0].reason === 'notFound') {
+          continue;
+        }
+
+        // otherwise something else went wrong
+        throw new Error("Calendar (" + JSON.stringify(room) + ") error: " + JSON.stringify(cal.errors));
+      }
+      if (cal.busy.length == 0) {
+        return room.resourceEmail;
       }
     }
   }
+  return null;
 }
