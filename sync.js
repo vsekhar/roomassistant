@@ -48,28 +48,39 @@ function doSync({fullSync = false} = {}) {
             var event = events[e];
 
             if (event.start.date) continue; // skip all-day events
-            if (event.attendeesOmitted) continue; // skip big events (e.g. all-hands)
+
+            var roomRequested = event.summary.toLowerCase().includes('room');
+            var hasAttendees = event.attendees && event.attendees.length > 0;
+            var numAttendees = hasAttendees ? event.attendees.length : 0;
+
+            // numAttendees == 0 is not a meeting
+            // numAttendees == 1 is a big meeting (e.g. all-hands)
+            //   - NB event.attendeesOmitted doesn't work for big meetings
+            if (!roomRequested && numAttendees < 2) continue;
 
             var humans = 0;
-            var going = false;
+            var userDeclined = false;
             var hasRoom = false;
             for (a in event.attendees) {
                 var attendee = event.attendees[a];
-                if (attendee.self && attendee.responseStatus != 'declined') going = true;
+                if (attendee.self && attendee.responseStatus == 'declined') userDeclined = true;
                 if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) hasRoom = true;
                 if (!attendee.resource) humans++;
             }
-            if (!going) continue;
             if (hasRoom) continue;
-            if (humans == 1) continue; // skip events without other people
+            if (userDeclined) continue;
+            if (!roomRequested && humans < 2) continue; // not a meeting
+
+            // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
             var newRoomEmail = findAvailable(rooms, event.start.dateTime, event.end.dateTime);
             // TODO: improve this with an email summary of failures
             if (!newRoomEmail) throw new Error("no available room found");
             var newRoom = roomsByEmail[newRoomEmail];
 
+            // TODO: check to ensure chosen room isn't already on the eveent (and declined)
             // TODO: add room to event
-            Logger.log("ADD: " + newRoom.generatedResourceName + " to '" + event.summary + "' on " + dateString);
+            Logger.log("ADD: " + newRoom.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
         }
     }
 }
