@@ -42,7 +42,7 @@ function testBuildingId() {
     Logger.log('Rooms in ' + building + ': ' + rooms.length);
   }
 
-  function testFindAvailable() {
+  function testAvailableRoomGenerator() {
     var rooms = [
       {
         // US-NYC-9TH-10-B-Hal 9000
@@ -51,6 +51,8 @@ function testBuildingId() {
     ];
     var startTime = '2019-06-12T01:00:00-05:00';
     var endTime = '2019-06-12T02:00:00-05:00';
-    var avail = findAvailable(rooms, startTime, endTime);
-    Logger.log("Room available: " + avail);
+    var roomGen = availableRoomGenerator(rooms, startTime, endTime);
+    roomGen.next();
+    var avail = roomGen.next();
+    Logger.log("Room available: " + JSON.stringify(avail));
   }

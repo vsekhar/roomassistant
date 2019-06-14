@@ -83,11 +83,15 @@ function doSync({fullSync = false} = {}) {
 
             // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
-            var newRoomEmail = findAvailable(rooms, event.start.dateTime, event.end.dateTime);
-            // TODO: consume rooms via generator so that more than one can be checked
+            var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
+            var newRoom;
+            for (r of roomGen) {
+                newRoom = r;
+                // TODO: try to add room, loop if unsuccessful
+                break;
+            }
             // TODO: improve this with an email summary of failures
-            if (!newRoomEmail) throw new Error("no available room found");
-            var newRoom = roomsByEmail[newRoomEmail];
+            if (!newRoom) throw new Error("no available room found");
 
             // TODO: check to ensure chosen room isn't already on the event (and declined)
             // TODO: add room to event

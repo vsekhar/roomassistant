@@ -166,11 +166,10 @@ function rankedRoomsIn(buildingId) {
   return rooms;
 }
 
-// Returns the resourceEmail of the first room in rankedRooms that is free
-// between startTime and endTime. Returns null if none found.
-function findAvailable(rankedRooms, startTime, endTime) {
-  // TODO: Make this a generator
-
+// availableRoomGenerator returns a generator that yields rooms from, and
+// in the order of, rankedRooms that are available between startTime and
+// endTime.
+function* availableRoomGenerator(rankedRooms, startTime, endTime) {
   // API max is 50
   // See: cs/calendar_rosy_max_freebusy_calendars_per_request
   const batchSize = 50;
@@ -203,7 +202,7 @@ function findAvailable(rankedRooms, startTime, endTime) {
         throw new Error("Calendar (" + JSON.stringify(room) + ") error: " + JSON.stringify(cal.errors));
       }
       if (cal.busy.length == 0) {
-        return room.resourceEmail;
+        yield room;
       }
     }
   }
