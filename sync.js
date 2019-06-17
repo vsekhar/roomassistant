@@ -21,6 +21,7 @@ function doSync({fullSync = false} = {}) {
 
     // Roomify each date
     initResources();
+    var failedEvents = [];
     for (d in eventsByDate) {
         var events = eventsByDate[d];
         var date = new Date(d);
@@ -84,18 +85,40 @@ function doSync({fullSync = false} = {}) {
             // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
             var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
-            var newRoom;
-            for (r of roomGen) {
-                newRoom = r;
+            var foundRoom = false;
+            for (room of roomGen) {
+                // TODO: check to ensure chosen room isn't already on the event (and declined)
                 // TODO: try to add room, loop if unsuccessful
+                Logger.log("ADD: " + room.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
+                foundRoom = true;
                 break;
             }
-            // TODO: improve this with an email summary of failures
-            if (!newRoom) throw new Error("no available room found");
-
-            // TODO: check to ensure chosen room isn't already on the event (and declined)
-            // TODO: add room to event
-            Logger.log("ADD: " + newRoom.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
+            if (!foundRoom) {
+                event.failureReason = "No available room found";
+                failedEvents.push(event);
+            }
         }
+    }
+
+    // Send failure summary to user
+    if (failedEvents.length > 0) {
+        var body = ['Room assistant was unable to find rooms for the following events:<br>'];
+        for (event of failedEvents) {
+            var start = new Date(event.start.dateTime);
+            var startDate = start.toLocaleDateString();
+            var startTime = start.toLocaleTimeString()
+            var eventString = '<p style="margin-left: 40px"><a href=' + event.htmlLink + '>' + event.summary + '</a> on ' + startDate + ' at ' + startTime + '</p>';
+            Logger.log('Event string: ' + eventString);
+            body.push(eventString);
+        }
+        body.push('- Room Assistant');
+        body = body.join('\n');
+        MailApp.sendEmail({
+            name: "Room Assistant",
+            to: Session.getActiveUser().getEmail(),
+            subject: "Room Assistant Failures",
+            htmlBody: body,
+            noReply: true
+          });
     }
 }
