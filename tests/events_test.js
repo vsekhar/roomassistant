@@ -1,7 +1,6 @@
 function listEvents() {
     var events = getEvents(startOfDate(today()), endOfDate(today()));
-    for (e in events) {
-      var event = events[e];
+    for (event of events) {
       if (event.start.date) {
         Logger.log('All day: ' + event.summary);
       } else {

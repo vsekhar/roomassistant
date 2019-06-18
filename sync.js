@@ -4,8 +4,7 @@ function doSync({fullSync = false} = {}) {
 
     // Index events by date
     var eventsByDate = {};
-    for (e in events) {
-        var event = events[e];
+    for (event of events) {
         var date;
         if (event.start.date) {
             date = new Date(event.start.date);
@@ -39,15 +38,12 @@ function doSync({fullSync = false} = {}) {
         Logger.log("User is in ", buildingId, " on ", dateString);
         var rooms = rankedRoomsIn(buildingId);
         var roomsByEmail = {};
-        for (r in rooms) {
-          var room = rooms[r];
+        for (room of rooms) {
           roomsByEmail[room.resourceEmail] = room;
         }
       
         // Loop through events
-        for (e in events) {
-            var event = events[e];
-
+        for (e of events) {
             if (event.start.date) continue; // skip all-day events
 
             var roomRequested = event.summary.toLowerCase().includes('room');
@@ -69,8 +65,7 @@ function doSync({fullSync = false} = {}) {
             var humans = 0;
             var userDeclined = false;
             var hasRoom = false;
-            for (a in event.attendees) {
-                var attendee = event.attendees[a];
+            for (attendee of event.attendees) {
                 if (attendee.self && attendee.responseStatus == 'declined') userDeclined = true;
                 if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) hasRoom = true;
                 if (!attendee.resource) humans++;

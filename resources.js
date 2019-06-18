@@ -28,8 +28,7 @@ function initBuildings() {
   var buildingsList = AdminDirectory.Resources.Buildings.list('my_customer').buildings;
   buildings.buildingsByName = {};
   buildings.buildingsById = {};
-  for (b in buildingsList) {
-    var building = buildingsList[b];
+  for (building of buildingsList) {
     buildings.buildingsByName[building.buildingName] = building.buildingId;
     buildings.buildingsById[building.buildingId] = building.buildingName;
   }
@@ -65,9 +64,7 @@ function buildingId(nameOrId) {
 // Returns the first building ID found, "skip" if no rooms are required that day,
 // or null if a building cannot be determined from the calendar.
 function buildingFromEvents(events) {
-  for (e in events) {
-    var event = events[e];
-    
+  for (event of events) {    
     if (typeof event.start.date === 'undefined') {
       // all day events only
       continue;
@@ -123,8 +120,7 @@ function buildingFromDirectoryOrDie() {
     var user = AdminDirectory.Users.get(id, {viewType: "domain_public"});
     
     var building;
-    for (l in user.locations) {
-      var location = user.locations[l];
+    for (location of user.locations) {
       if (location.type == 'desk' || location.type == 'default') {
         cache.put(cacheName, location.buildingId, 21600); // 21600 seconds (6 hours) is max cache time
         return location.buildingId;
@@ -182,12 +178,11 @@ function* availableRoomGenerator(rankedRooms, startTime, endTime) {
       timeMax: endTime,
       calendarExpansionMax: batchSize // calendarExpansionMax defaults to 20 
     };
-    for (r in rooms) {
-      query.items.push({'id': rooms[r].resourceEmail});
+    for (room of rooms) {
+      query.items.push({'id': room.resourceEmail});
     }
     var response = Calendar.Freebusy.query(query);
-    for (r in rooms) {
-      var room = rooms[r];
+    for (room of rooms) {
       if (!response.calendars.hasOwnProperty(room.resourceEmail)) {
         throw new Error("Requested room not returned: " + room);
       }
