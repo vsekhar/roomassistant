@@ -7,7 +7,14 @@ function doSync({fullSync = false} = {}) {
     for (event of events) {
         var date;
         if (event.start.date) {
-            date = new Date(event.start.date);
+            dateParts = event.start.date.split('-');
+            if (dateParts.length != 3) {
+                throw new Error('Bad date: ' + event.start.date);
+            }
+            date = startOfDate(today());
+            date.setYear(dateParts[0]);
+            date.setMonth(dateParts[1] - 1);
+            date.setDate(dateParts[2]);
         } else {
             date = startOfDate(event.start.dateTime);
         }
