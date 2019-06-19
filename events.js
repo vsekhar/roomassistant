@@ -56,3 +56,26 @@ function getSyncEvents({fullSync = false} = {}) {
   properties.setProperty(syncTokenName, response.nextSyncToken);
   return events;
 }
+
+function addRoom(event, room) {
+    var newEvent = {attendees: Array.from(event.attendees)};
+    newEvent.attendees.push({
+        email: room.resourceEmail,
+        resource: true
+    });
+    Logger.log("Original event: " + JSON.stringify(event));
+    Logger.log("Room: " + JSON.stringify(room));
+    Logger.log("New event: " + JSON.stringify(newEvent));
+    try {
+        event = Calendar.Events.patch(
+            newEvent,
+            'primary',
+            event.id,
+            {sendUpdates: 'none'},
+            {'If-Match': event.etag}
+            );
+        Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.id);
+    } catch (e) {
+        Logger.log('Patch threw an exception: ' + JSON.stringify(e));
+    }
+}

@@ -100,8 +100,9 @@ function doSync({fullSync = false} = {}) {
                         continue roomLoop;
                     }
                 }
-                // TODO: try to add room, loop if unsuccessful
                 Logger.log("ADD: " + room.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
+                addRoom(event, room);
+                // TODO: loop?
                 foundRoom = true;
                 break;
             }
