@@ -77,7 +77,11 @@ function doSync({fullSync = false} = {}) {
                 if (humans == 1) continue; // skip non-meetings
             }
 
-            // Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
+            Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
+            if (debug && !event.summary.toLowerCase().includes('test')) {
+                Logger.log("DEBUG: skipping (event title doesn't include 'test')");
+                continue;
+            }
 
             var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
             var foundRoom = false;
