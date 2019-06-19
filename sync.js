@@ -5,6 +5,11 @@ function doSync({fullSync = false} = {}) {
     // Index events by date
     var eventsByDate = {};
     for (event of events) {
+        // Cancelled events sometimes returned during incremental sync
+        // (and also for cancelled exceptions to repeated events, but we
+        // don't care about dropping those since we expand repeated events.)
+        if (event.status == 'cancelled') continue;
+        
         var date;
         if (event.start.date) {
             dateParts = event.start.date.split('-');
