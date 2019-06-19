@@ -50,7 +50,7 @@ function doSync({fullSync = false} = {}) {
         }
       
         // Loop through events
-        for (e of events) {
+        for (event of events) {
             if (event.start.date) continue; // skip all-day events
 
             var roomRequested = event.summary.toLowerCase().includes('room');
