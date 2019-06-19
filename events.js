@@ -67,15 +67,18 @@ function addRoom(event, room) {
     Logger.log("Room: " + JSON.stringify(room));
     Logger.log("New event: " + JSON.stringify(newEvent));
     try {
-        event = Calendar.Events.patch(
+        Calendar.Events.patch(
             newEvent,
             'primary',
             event.id,
             {sendUpdates: 'none'},
             {'If-Match': event.etag}
-            );
-        Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.id);
+        );
+        Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
     } catch (e) {
         Logger.log('Patch threw an exception: ' + JSON.stringify(e));
     }
+
+    // Don't clean up declined rooms here since we don't yet know if the
+    // room we just added will be accepted.
 }

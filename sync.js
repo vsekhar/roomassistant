@@ -83,7 +83,37 @@ function doSync({fullSync = false} = {}) {
                 if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) hasRoom = true;
                 if (!attendee.resource) humans++;
             }
-            if (hasRoom) continue;
+            if (hasRoom) {
+                // Clean up declined rooms if we haev .
+                //
+                // Declined rooms are kept to avoid trying to add them again in subsequent
+                // rounds, so only clear them if we have a room in the user's building and
+                // then only for that building.
+                var newEvent = {attendees: []};
+                for (attendee of attendees) {
+                    // Skip attendees that are resources, have declined and are in the user's building
+                    if (attendee.resource && attendee.responseStatus == 'declined' && roomsByEmail.hasOwnProperty(attendee.email)) {
+                        continue;
+                    }
+                    newEvent.attendees.push({
+                        email: attendee.email,
+                        resource: attendee.resource
+                    });
+                }
+                try {
+                    Calendar.Events.patch(
+                        newEvent,
+                        'primary',
+                        event.id,
+                        {sendUpdates: 'none'},
+                        {'If-Match': event.etag}
+                    );
+                    Logger.log('')
+                } catch (e) {
+                    Logger.log('Patch threw an exception: ' + JSON.stringify(e));
+                }
+                continue;
+            }
             if (userDeclined) continue;
             if (!roomRequested) {
                 if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
