@@ -81,8 +81,14 @@ function doSync({fullSync = false} = {}) {
 
             var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
             var foundRoom = false;
+            roomLoop:
             for (room of roomGen) {
-                // TODO: check to ensure chosen room isn't already on the event (and declined)
+                for (attendee of event.attendees) {
+                    if (!attendee.resource) continue;
+                    if (attendee.email === room.email && attendee.responseStatus == 'declined') {
+                        continue roomLoop;
+                    }
+                }
                 // TODO: try to add room, loop if unsuccessful
                 Logger.log("ADD: " + room.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
                 foundRoom = true;
