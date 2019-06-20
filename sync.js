@@ -90,23 +90,18 @@ function doSync({fullSync = false} = {}) {
                 // Already have a room?
                 if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) {
                     hasRoom = true;
-                } else {
-                    // Already have a room hold?
-                    for (holdEvent in events) {
-                        if (holdEvent.summary != roomHoldEventTitle) continue;
-                        if (holdEvent.start.dateTime === event.start.dateTime && holdEvent.end.dateTime === event.end.dateTime) {
-                            hasRoom = true;
-                            break;
-                        }
-                    }        
                 }
             }
-            if (userResponse == 'declined') continue;
-            if (!roomRequested) {
-                if (numAttendees == 1 && userResponse != 'accepted') continue; // skip all-hands that are not accepted
-                if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
-                if (humans == 1) continue; // skip non-meetings
+
+            // Already have a room hold?
+            for (holdEvent in events) {
+                if (holdEvent.summary != roomHoldEventTitle) continue;
+                if (holdEvent.start.dateTime === event.start.dateTime && holdEvent.end.dateTime === event.end.dateTime) {
+                    hasRoom = true;
+                    break;
+                }
             }
+
             if (hasRoom) {
                 // Clean up declined rooms if we have a room already, then skip the event.
                 //
@@ -146,6 +141,16 @@ function doSync({fullSync = false} = {}) {
                 }
                 continue; // don't roomify the event (has a room already)
             }
+
+            // Other skips: user declined, all-hands (except accepted ones), non-meetings
+            if (userResponse == 'declined') continue;
+            if (!roomRequested) {
+                if (numAttendees == 1 && userResponse != 'accepted') continue; // skip all-hands that are not accepted
+                if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
+                if (humans == 1) continue; // skip non-meetings
+            }
+
+            // Ok, ready to roomify
 
             Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
@@ -210,6 +215,7 @@ function doSync({fullSync = false} = {}) {
             }
             if (!roomAdded) {
                 event.failureReason = "No available room found";
+                // TODO: try to break 1+ hour meetings into 30 min blocks and find room holds for each block
                 failedEvents.push(event);
             }
         }
