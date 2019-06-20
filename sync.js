@@ -99,34 +99,37 @@ function doSync({fullSync = false} = {}) {
                 // rounds, so only clear them if we have a room in the user's building and
                 // then only for that building.
                 var newEvent = {attendees: []};
+                var removed = [];
                 for (attendee of event.attendees) {
                     // Leave out attendees that are resources, have declined and are in
                     // the user's building.
                     if (attendee.resource && attendee.responseStatus == 'declined' && roomsByEmail.hasOwnProperty(attendee.email)) {
-                        continue;
+                        removed.push(attendee.generatedResourceName);
+                    } else {
+                        newEvent.attendees.push({
+                            email: attendee.email,
+                            resource: attendee.resource
+                        });
                     }
-                    newEvent.attendees.push({
-                        email: attendee.email,
-                        resource: attendee.resource
-                    });
                 }
-                try {
-                    if (!dryRun) {
-                        Calendar.Events.patch(
-                            newEvent,
-                            'primary',
-                            event.id,
-                            {sendUpdates: 'none'},
-                            {'If-Match': event.etag}
-                        );
+                if (removed.length > 0) {
+                    try {
+                        if (!dryRun) {
+                            Calendar.Events.patch(
+                                newEvent,
+                                'primary',
+                                event.id,
+                                {sendUpdates: 'none'},
+                                {'If-Match': event.etag}
+                            );
+                        }
+                        Logger.log('Removed declined rooms from \'' + event.summary + '\': ' + JSON.stringify(removed));
+                        if (dryRun) Logger.log("(dry run, nothing modified)");
+                    } catch (e) {
+                        Logger.log('Patch threw an exception: ' + JSON.stringify(e));
                     }
-                    Logger.log('Removed declined rooms from \'' + event.summary + '\'');
-                    if (dryRun) Logger.log("(dry run, nothing modified)");
-                } catch (e) {
-                    Logger.log('Patch threw an exception: ' + JSON.stringify(e));
                 }
-                Logger.log('Removing ')
-                continue;
+                continue; // don't roomify the event (has a room already)
             }
 
             Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
