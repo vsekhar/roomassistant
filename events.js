@@ -77,6 +77,8 @@ function addRoom(event, room) {
         Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
     } catch (e) {
         Logger.log('Patch threw an exception: ' + JSON.stringify(e));
+        // TODO: if not allowed, create a new event called 'room' and copy over
+        // conferencing information.
     }
 
     // Don't clean up declined rooms here since we don't yet know if the
