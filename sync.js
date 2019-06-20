@@ -181,3 +181,34 @@ function doSync({fullSync = false} = {}) {
           });
     }
 }
+
+function addRoom(event, room) {
+    var newEvent = {attendees: Array.from(event.attendees)};
+    newEvent.attendees.push({
+        email: room.resourceEmail,
+        resource: true
+    });
+    Logger.log("Original event: " + JSON.stringify(event));
+    Logger.log("Room: " + JSON.stringify(room));
+    Logger.log("New event: " + JSON.stringify(newEvent));
+    try {
+        if (!dryRun) {
+            Calendar.Events.patch(
+                newEvent,
+                'primary',
+                event.id,
+                {sendUpdates: 'none'},
+                {'If-Match': event.etag}
+            );
+        }
+        Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
+        if (dryRun) Logger.log("(dry run, nothing modified)");
+    } catch (e) {
+        Logger.log('Patch threw an exception: ' + JSON.stringify(e));
+        // TODO: if not allowed, create a new event called 'room' and copy over
+        // conferencing information.
+    }
+
+    // Don't clean up declined rooms here since we don't yet know if the
+    // room we just added will accept or decline.
+}
