@@ -22,7 +22,7 @@ function getSyncEvents({fullSync = false} = {}) {
       var startDate = startOfDate(today());
       options.timeMin = startDate.toISOString();
       var endDate = new Date(startDate.valueOf());
-      endDate.setDate(endDate.getDate() + (debug ? 0 : lookAheadDays));
+      endDate.setDate(endDate.getDate() + lookAheadDays);
       endDate = endOfDate(endDate);
       options.timeMax = endDate.toISOString();
       // NB: Setting options.orderBy = 'startTime' breaks syncToken

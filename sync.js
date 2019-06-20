@@ -59,7 +59,6 @@ function doSync({fullSync = false} = {}) {
             if (event.start.date) continue; // skip all-day events
 
             var roomRequested = event.summary.toLowerCase().includes('room');
-            var testEvent = event.summary.toLowerCase().includes('test');
             var hasAttendees = event.attendees && event.attendees.length > 0;
             var numAttendees = hasAttendees ? event.attendees.length : 0;
 
@@ -133,10 +132,6 @@ function doSync({fullSync = false} = {}) {
             }
 
             Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
-            if (debug && !testEvent) {
-                Logger.log("DEBUG: skipping (event title doesn't include 'test')");
-                continue;
-            }
 
             var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
             var foundRoom = false;
