@@ -67,14 +67,17 @@ function addRoom(event, room) {
     Logger.log("Room: " + JSON.stringify(room));
     Logger.log("New event: " + JSON.stringify(newEvent));
     try {
-        Calendar.Events.patch(
-            newEvent,
-            'primary',
-            event.id,
-            {sendUpdates: 'none'},
-            {'If-Match': event.etag}
-        );
+        if (!dryRun) {
+            Calendar.Events.patch(
+                newEvent,
+                'primary',
+                event.id,
+                {sendUpdates: 'none'},
+                {'If-Match': event.etag}
+            );
+        }
         Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
+        if (dryRun) Logger.log("(dry run, nothing modified)");
     } catch (e) {
         Logger.log('Patch threw an exception: ' + JSON.stringify(e));
         // TODO: if not allowed, create a new event called 'room' and copy over
@@ -82,5 +85,5 @@ function addRoom(event, room) {
     }
 
     // Don't clean up declined rooms here since we don't yet know if the
-    // room we just added will be accepted.
+    // room we just added will accept or decline.
 }
