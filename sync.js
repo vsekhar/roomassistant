@@ -42,12 +42,12 @@ function doSync({fullSync = false} = {}) {
         var date = new Date(d);
         var dateString = date.toLocaleDateString("en-US");
         var buildingId = buildingFromEvents(events);
-        if (buildingId == null) {
-            buildingId = buildingFromDirectoryOrDie();
-        }
         if (buildingId === 'skip') {
             Logger.log("User is not in the office on ", dateString);
             continue;
+        }
+        if (buildingId == null) {
+            buildingId = buildingFromDirectoryOrDie();
         }
 
         // Get rooms in buildingId and index by email
