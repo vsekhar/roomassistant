@@ -1,3 +1,7 @@
+// Title to give events that are created to hold rooms (when the original
+// event cannot be modified).
+const roomHoldEventTitle = 'Room hold (by RoomAssistant)';
+
 function doSync({fullSync = false} = {}) {
     var events = getSyncEvents({fullSync: fullSync});
     Logger.log("Syncing :", events.length, " events");
@@ -49,13 +53,14 @@ function doSync({fullSync = false} = {}) {
         // Get rooms in buildingId and index by email
         Logger.log("User is in ", buildingId, " on ", dateString);
         var rooms = rankedRoomsIn(buildingId);
-        var roomsByEmail = {};
+        var roomsByEmail = {}; // rooms in the building the user is in this day
         for (room of rooms) {
           roomsByEmail[room.resourceEmail] = room;
         }
       
         // Loop through events
         for (event of events) {
+            if (event.summary === roomHoldEventTitle) continue; // skip room holds
             if (event.start.date) continue; // skip all-day events
 
             var roomRequested = event.summary.toLowerCase().includes('room');
@@ -79,11 +84,22 @@ function doSync({fullSync = false} = {}) {
             var userResponse;
             var hasRoom = false;
             for (attendee of event.attendees) {
-                if (attendee.self) {
-                    userResponse = attendee.responseStatus;
-                }
-                if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) hasRoom = true;
+                if (attendee.self) userResponse = attendee.responseStatus;
                 if (!attendee.resource) humans++;
+
+                // Already have a room?
+                if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) {
+                    hasRoom = true;
+                } else {
+                    // Already have a room hold?
+                    for (holdEvent in events) {
+                        if (holdEvent.summary != roomHoldEventTitle) continue;
+                        if (holdEvent.start.dateTime === event.start.dateTime && holdEvent.end.dateTime === event.end.dateTime) {
+                            hasRoom = true;
+                            break;
+                        }
+                    }        
+                }
             }
             if (userResponse == 'declined') continue;
             if (!roomRequested) {
@@ -134,23 +150,65 @@ function doSync({fullSync = false} = {}) {
             Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
 
             var roomGen = availableRoomGenerator(rooms, event.start.dateTime, event.end.dateTime);
-            var foundRoom = false;
+            var roomAdded = false;
             roomLoop:
             for (room of roomGen) {
-                // Don't try to re-add a room that has already decliend this event
+                // Don't try to re-add a room that has already declined this event
                 for (attendee of event.attendees) {
                     if (!attendee.resource) continue;
                     if (attendee.email === room.email && attendee.responseStatus == 'declined') {
                         continue roomLoop;
                     }
                 }
+
                 Logger.log("ADD: " + room.generatedResourceName + " to '" + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
-                addRoom(event, room);
-                // TODO: loop?
-                foundRoom = true;
-                break;
+                var newEvent = {attendees: Array.from(event.attendees)};
+                newEvent.attendees.push({
+                    email: room.resourceEmail,
+                    resource: true
+                });
+                Logger.log("Original event: " + JSON.stringify(event));
+                Logger.log("Room: " + JSON.stringify(room));
+                Logger.log("New event: " + JSON.stringify(newEvent));
+                try {
+                    // Don't bother trying if the event won't allow additions
+                    if (event.guestsCanInviteOthers) {
+                        if (!dryRun) {
+                            patchedEvent = Calendar.Events.patch(
+                                newEvent,
+                                'primary',
+                                event.id,
+                                {sendUpdates: 'none'},
+                                {'If-Match': event.etag}
+                            );
+                            for (attendee of patchedEvent.attendees) {
+                                if (attendee.email = room.resourceEmail) {
+                                    roomAdded = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    Logger.log('Patch threw an exception: ' + JSON.stringify(e));
+                }
+
+                if (roomAdded) {
+                    Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
+                } else {
+                    // TODO: create a new event with event.summary = roomHoldEventTitle and room, copy
+                    // conferencing information.
+                    Logger.log('Successfully added room hold of ' + room.generatedResourceName + ' for ' + event.summary);
+                    roomAdded = true;
+                }
+                if (dryRun) Logger.log("(dry run, nothing modified)");
+
+                // Don't clean up declined rooms here since we don't yet know if the
+                // room we just added will accept or decline.
+
+                break; // done searching for rooms
             }
-            if (!foundRoom) {
+            if (!roomAdded) {
                 event.failureReason = "No available room found";
                 failedEvents.push(event);
             }
@@ -178,35 +236,4 @@ function doSync({fullSync = false} = {}) {
             noReply: true
           });
     }
-}
-
-function addRoom(event, room) {
-    var newEvent = {attendees: Array.from(event.attendees)};
-    newEvent.attendees.push({
-        email: room.resourceEmail,
-        resource: true
-    });
-    Logger.log("Original event: " + JSON.stringify(event));
-    Logger.log("Room: " + JSON.stringify(room));
-    Logger.log("New event: " + JSON.stringify(newEvent));
-    try {
-        if (!dryRun) {
-            Calendar.Events.patch(
-                newEvent,
-                'primary',
-                event.id,
-                {sendUpdates: 'none'},
-                {'If-Match': event.etag}
-            );
-        }
-        Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
-        if (dryRun) Logger.log("(dry run, nothing modified)");
-    } catch (e) {
-        Logger.log('Patch threw an exception: ' + JSON.stringify(e));
-        // TODO: if not allowed, create a new event called 'room' and copy over
-        // conferencing information.
-    }
-
-    // Don't clean up declined rooms here since we don't yet know if the
-    // room we just added will accept or decline.
 }
