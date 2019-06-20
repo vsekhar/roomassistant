@@ -66,32 +66,42 @@ function doSync({fullSync = false} = {}) {
             // numAttendees == 
             //   0: just the user (no guests, no rooms)
             //   1: attendee list too large to display (e.g. all-hands)
-            //       - event.attendeesOmitted doesn't work to detect big meetings
+            //       - roomify only if the user actively accepted (checked below)
+            //       - NB: event.attendeesOmitted doesn't work to detect big meetings
             //   2: event has one other guest or a room, plus the user
             //       - Yes, adding *just* a room to an empty event bumps
             //         numAttendees from 0 to 2...
             if (!roomRequested) {
                 if (numAttendees == 0) continue; // skip non-meetings
-                if (numAttendees == 1) continue; // skip all-hands
+                // numAttendees == 1 (all-hands) checked below
             }
 
             var humans = 0;
-            var userDeclined = false;
+            var userResponse;
             var hasRoom = false;
             for (attendee of event.attendees) {
-                if (attendee.self && attendee.responseStatus == 'declined') userDeclined = true;
+                if (attendee.self) {
+                    userResponse = attendee.responseStatus;
+                }
                 if (attendee.resource && attendee.responseStatus == 'accepted' && roomsByEmail.hasOwnProperty(attendee.email)) hasRoom = true;
                 if (!attendee.resource) humans++;
             }
+            if (userResponse == 'declined') continue;
+            if (!roomRequested) {
+                if (numAttendees == 1 && userResponse != 'accepted') continue; // skip all-hands that are not accepted
+                if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
+                if (humans == 1) continue; // skip non-meetings
+            }
             if (hasRoom) {
-                // Clean up declined rooms if we haev .
+                // Clean up declined rooms if we have a room already, then skip the event.
                 //
                 // Declined rooms are kept to avoid trying to add them again in subsequent
                 // rounds, so only clear them if we have a room in the user's building and
                 // then only for that building.
                 var newEvent = {attendees: []};
-                for (attendee of attendees) {
-                    // Skip attendees that are resources, have declined and are in the user's building
+                for (attendee of event.attendees) {
+                    // Leave out attendees that are resources, have declined and are in
+                    // the user's building.
                     if (attendee.resource && attendee.responseStatus == 'declined' && roomsByEmail.hasOwnProperty(attendee.email)) {
                         continue;
                     }
@@ -101,23 +111,22 @@ function doSync({fullSync = false} = {}) {
                     });
                 }
                 try {
-                    Calendar.Events.patch(
-                        newEvent,
-                        'primary',
-                        event.id,
-                        {sendUpdates: 'none'},
-                        {'If-Match': event.etag}
-                    );
-                    Logger.log('')
+                    if (!dryRun) {
+                        Calendar.Events.patch(
+                            newEvent,
+                            'primary',
+                            event.id,
+                            {sendUpdates: 'none'},
+                            {'If-Match': event.etag}
+                        );
+                    }
+                    Logger.log('Removed declined rooms from \'' + event.summary + '\'');
+                    if (dryRun) Logger.log("(dry run, nothing modified)");
                 } catch (e) {
                     Logger.log('Patch threw an exception: ' + JSON.stringify(e));
                 }
+                Logger.log('Removing ')
                 continue;
-            }
-            if (userDeclined) continue;
-            if (!roomRequested) {
-                if (humans == 0) throw new Error("Event has attendees but no humans"); // unexpected
-                if (humans == 1) continue; // skip non-meetings
             }
 
             Logger.log("ROOMIFYING: " + event.summary + "' (" + humans + " humans, " + numAttendees + " attendees) on " + dateString);
@@ -130,6 +139,7 @@ function doSync({fullSync = false} = {}) {
             var foundRoom = false;
             roomLoop:
             for (room of roomGen) {
+                // Don't try to re-add a room that has already decliend this event
                 for (attendee of event.attendees) {
                     if (!attendee.resource) continue;
                     if (attendee.email === room.email && attendee.responseStatus == 'declined') {
