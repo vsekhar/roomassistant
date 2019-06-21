@@ -175,9 +175,8 @@ function doSync({fullSync = false} = {}) {
                 Logger.log("Original event: " + JSON.stringify(event));
                 Logger.log("Room: " + JSON.stringify(room));
                 Logger.log("New event: " + JSON.stringify(newEvent));
-                try {
-                    // Don't bother trying if the event won't allow additions
-                    if (event.guestsCanInviteOthers) {
+                if (event.guestsCanInviteOthers) {
+                    try {
                         if (!dryRun) {
                             patchedEvent = Calendar.Events.patch(
                                 newEvent,
@@ -186,32 +185,67 @@ function doSync({fullSync = false} = {}) {
                                 {sendUpdates: 'none'},
                                 {'If-Match': event.etag}
                             );
+
+                            // Check that it was added (patch sometimes silently fails)
                             for (attendee of patchedEvent.attendees) {
-                                if (attendee.email = room.resourceEmail) {
+                                if (attendee.email = room.resourceEmail && attendee.responseStatus != 'declined') {
                                     roomAdded = true;
                                     break;
                                 }
+                                // NB: room might later decline, we'll catch it in a subsequent run.
                             }
                         }
+                    } catch (e) {
+                        Logger.log('Patch threw an exception: ' + JSON.stringify(e));
                     }
-                } catch (e) {
-                    Logger.log('Patch threw an exception: ' + JSON.stringify(e));
-                }
+                } // event.guestsCanInviteOthers
 
-                if (roomAdded) {
-                    Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
-                } else {
-                    // TODO: create a new event with event.summary = roomHoldEventTitle and room, copy
-                    // conferencing information.
-                    Logger.log('Successfully added room hold of ' + room.generatedResourceName + ' for ' + event.summary);
-                    roomAdded = true;
+                if (roomAdded) Logger.log('Successfully added ' + room.generatedResourceName + ' to ' + event.summary);
+                else {
+                    // Create a room hold event
+                    var holdEvent = {
+                        kind: 'calendar#event',
+                        summary: roomHoldEventTitle,
+                        start: event.start,
+                        end: event.end,
+                        organizer: {email: Session.getActiveUser().getEmail()},
+                        creator: {displayName: 'Room Assistant (Google)', email: 'noreply@google.com'},
+                        visibility: event.visibility,
+                        attendees: [{email: room.resourceEmail, resource: true}],
+                        conferenceData: event.conferenceData,
+                        source: {
+                            title: event.summary,
+                            url: event.htmlLink
+                        }
+                    };
+                    try {
+                        if (!dryRun) {
+                            insertedEvent = Calendar.Events.insert(
+                                'primary',
+                                holdEvent,
+                                {sendUpdates: 'none'}
+                            );
+                        
+                            // Check that it was added
+                            for (attendee of insertedEvent.attendees) {
+                                if (attendee.email = room.resourceEmail && attendee.responseStatus != 'declined') {
+                                    roomAdded = true;
+                                    break;
+                                }
+                                // NB: room might later decline, we'll catch it in a subsequent run.
+                            }
+                        }
+                    } catch(e) {
+                        throw new Error(JSON.stringify(e));
+                    }
+                    if (roomAdded) Logger.log('Successfully added room hold of ' + room.generatedResourceName + ' for ' + event.summary);
                 }
                 if (dryRun) Logger.log("(dry run, nothing modified)");
 
                 // Don't clean up declined rooms here since we don't yet know if the
                 // room we just added will accept or decline.
 
-                break; // done searching for rooms
+                if (roomAdded) break; // done searching for rooms
             }
             if (!roomAdded) {
                 event.failureReason = "No available room found";
