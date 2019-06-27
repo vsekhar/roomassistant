@@ -63,22 +63,25 @@ function doSync({fullSync = false} = {}) {
             if (event.summary === roomHoldEventTitle) continue; // skip room holds
             if (event.start.date) continue; // skip all-day events
 
+            // Events can include the word 'room' to force a room in the user's building
+            // to be found for that event, regardless of any other event properties.
             var roomRequested = event.summary.toLowerCase().includes('room');
-            var hasAttendees = event.attendees && event.attendees.length > 0;
-            var numAttendees = hasAttendees ? event.attendees.length : 0;
 
+            // Attendees of an event are a bit funny.
+            //
             // numAttendees == 
             //   0: just the user (no guests, no rooms)
+            //       --> skip event
             //   1: attendee list too large to display (e.g. all-hands)
-            //       - roomify only if the user actively accepted (checked below)
             //       - NB: event.attendeesOmitted doesn't work to detect big meetings
+            //       --> skip event if user has not RSVP'd yes (checked below)
             //   2: event has one other guest or a room, plus the user
             //       - Yes, adding *just* a room to an empty event bumps
             //         numAttendees from 0 to 2...
-            if (!roomRequested) {
-                if (numAttendees == 0) continue; // skip non-meetings
-                // numAttendees == 1 (all-hands) checked below
-            }
+            //       --> skip event if humans == 1 (checked below)
+            var hasAttendees = event.attendees && event.attendees.length > 0;
+            var numAttendees = hasAttendees ? event.attendees.length : 0;
+            if (!roomRequested && numAttendees == 0) continue; // non-meetings
 
             var humans = 0;
             var userResponse;
