@@ -201,5 +201,4 @@ function* availableRoomGenerator(rankedRooms, startTime, endTime) {
       }
     }
   }
-  return null;
 }
