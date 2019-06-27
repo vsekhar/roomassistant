@@ -63,9 +63,11 @@ function doSync({fullSync = false} = {}) {
             if (event.summary === roomHoldEventTitle) continue; // skip room holds
             if (event.start.date) continue; // skip all-day events
 
-            // Events can include the word 'room' to force a room in the user's building
-            // to be found for that event, regardless of any other event properties.
-            var roomRequested = event.summary.toLowerCase().includes('room');
+            // Users can create events with 'room' in the title to force a room to
+            // be reserved in the building where they'll be that day, regardless of
+            // other event properties.
+            var roomRequested = event.summary.toLowerCase().includes('room')
+                             && event.organizer.self;
 
             // Attendees of an event are a bit funny.
             //
