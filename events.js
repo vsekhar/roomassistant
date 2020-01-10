@@ -1,4 +1,4 @@
-const lookAheadDays = 13; // 0 means just today
+const lookAheadDays = 0; // 0 means just today
 
 const syncTokenName = 'roomassistantSyncToken';
 const maxResultsPerPage = 50; // max 2500
